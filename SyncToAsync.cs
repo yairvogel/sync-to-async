@@ -2,48 +2,48 @@ using System.Collections.Concurrent;
 
 namespace sync_to_async;
 
-public class SyncToAsync
+public class SyncToAsync<TRequest, TResponse>
+    where TRequest : notnull
 {
-    private readonly ILogger<SyncToAsync> logger;
-    public SyncToAsync(ILogger<SyncToAsync> logger, IHostApplicationLifetime hostLifetime)
+    private readonly ILogger<SyncToAsync<TRequest, TResponse>> logger;
+    private readonly ConcurrentDictionary<TRequest, TaskCompletionSource<TResponse>> inflight = new();
+
+    public SyncToAsync(ILogger<SyncToAsync<TRequest, TResponse>> logger, IHostApplicationLifetime hostLifetime)
     {
         this.logger = logger;
         hostLifetime.ApplicationStopping.Register(CancelAll);
     }
 
-    private record Entry(TaskCompletionSource<string> Tcs);
-    private readonly ConcurrentDictionary<string, Entry> inflight = new();
-
-    public Task<string> RequestAsync(string request, CancellationToken cancellationToken)
+    public Task<TResponse> RequestAsync(TRequest request, CancellationToken cancellationToken)
     {
         cancellationToken.UnsafeRegister(CancelKey, request);
         var entry = inflight.GetOrAdd(request, _ =>
         {
             logger.LogDebug("creating entry for {request}", request);
-            return new Entry(new(cancellationToken));
+            return new(cancellationToken);
         });
 
-        return entry.Tcs.Task;
+        return entry.Task;
     }
 
-    public void Resolve(string request, string response)
+    public void Resolve(TRequest request, TResponse response)
     {
         logger.LogInformation("resolving request {request} with {response}", request, response);
-        if (!inflight.TryRemove(request, out Entry? entry))
+        if (!inflight.TryRemove(request, out var entry))
         {
             logger.LogWarning("Couldn't find {request}", request);
             return;
         }
 
-        entry.Tcs.SetResult(response);
+        entry.SetResult(response);
     }
 
     private void CancelKey(object? state, CancellationToken token) {
-        var key = (string)state!;
+        var key = (TRequest)state!;
         logger.LogDebug("cancelling key {Key}", key);
         if (inflight.TryRemove(key, out var entry))
         {
-            entry.Tcs.SetCanceled(token);
+            entry.SetCanceled(token);
             logger.LogDebug("cancelled key {Key}", key);
         }
     }
@@ -52,7 +52,7 @@ public class SyncToAsync
     {
         foreach (var e in inflight.Values)
         {
-            e.Tcs.SetCanceled();
+            e.SetCanceled();
         }
     }
 }
