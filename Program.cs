@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using sync_to_async;
 
 var builder = WebApplication.CreateBuilder(args);
 

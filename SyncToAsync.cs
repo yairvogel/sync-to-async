@@ -1,12 +1,14 @@
 using System.Collections.Concurrent;
 
-public class SyncToAsync : IDisposable
+namespace sync_to_async;
+
+public class SyncToAsync
 {
     private readonly ILogger<SyncToAsync> logger;
     public SyncToAsync(ILogger<SyncToAsync> logger, IHostApplicationLifetime hostLifetime)
     {
         this.logger = logger;
-        hostLifetime.ApplicationStopping.Register(Dispose);
+        hostLifetime.ApplicationStopping.Register(CancelAll);
     }
 
     private record Entry(TaskCompletionSource<string> Tcs);
@@ -14,9 +16,10 @@ public class SyncToAsync : IDisposable
 
     public Task<string> RequestAsync(string request, CancellationToken cancellationToken)
     {
+        cancellationToken.UnsafeRegister(CancelKey, request);
         var entry = inflight.GetOrAdd(request, _ =>
         {
-            logger.LogInformation("creating entry for {request}", request);
+            logger.LogDebug("creating entry for {request}", request);
             return new Entry(new(cancellationToken));
         });
 
@@ -35,7 +38,17 @@ public class SyncToAsync : IDisposable
         entry.Tcs.SetResult(response);
     }
 
-    public void Dispose()
+    private void CancelKey(object? state, CancellationToken token) {
+        var key = (string)state!;
+        logger.LogDebug("cancelling key {Key}", key);
+        if (inflight.TryRemove(key, out var entry))
+        {
+            entry.Tcs.SetCanceled(token);
+            logger.LogDebug("cancelled key {Key}", key);
+        }
+    }
+
+    public void CancelAll()
     {
         foreach (var e in inflight.Values)
         {
