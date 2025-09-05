@@ -1,0 +1,51 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: pass
+    ports:
+      - "15672:15672"  # Management UI
+      - "5672:5672"    # AMQP port
+    networks:
+      - app-network
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  service:
+    build:
+      context: ./service
+      dockerfile: Dockerfile
+    container_name: service
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app-network
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Rmq=amqp://user:pass@rabbitmq:5672
+
+  echo:
+    build:
+      context: ./echo
+      dockerfile: Dockerfile
+    container_name: echo
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - RmqConnectionString=amqp://user:pass@rabbitmq:5672
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
