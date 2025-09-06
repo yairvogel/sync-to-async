@@ -1,10 +1,19 @@
 from asyncio import sleep
+from typing import Literal
 from fastapi import FastAPI, Request
-import fastapi
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 import httpx
 from urllib.parse import quote
+import pika
+import os
+
+from pika.adapters.blocking_connection import BlockingChannel
+from pydantic import BaseModel
+
+RABBITMQ_CONN = os.environ.get("Rmq", None)
+assert RABBITMQ_CONN is not None
+connection = pika.BlockingConnection(pika.URLParameters(RABBITMQ_CONN))
 
 app = FastAPI()
 templates = Jinja2Templates("templates")
@@ -24,15 +33,36 @@ async def ping(request: Request, message: str):
         )
 
 
+LogLevel = Literal["info", "debug", "warn", "err"]
+
+
+class LogMessage(BaseModel):
+    log_level: LogLevel
+    log_content: str
+
+
 async def log_generator(request: Request):
-    while True:
-        print("ping")
-        r = templates.TemplateResponse(
-            request, "log.html", {"log_level": "info", "log_content": "ping"}
-        )
-        text = bytes(r.body).decode("utf-8").strip()
-        yield f"event:log\ndata:{text}\n\n"
-        await sleep(1)
+    with connection.channel() as channel:
+        channel: BlockingChannel
+        result = channel.queue_declare("", exclusive=True)
+        queue: str = result.method.queue
+
+        channel.queue_bind(exchange="ping", queue=result.method.queue)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+        channel.queue_bind(exchange="pong", queue=result.method.queue)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+
+        while True:
+            ok, props, body = channel.basic_get(queue, True)
+            if ok:
+                content = body.decode("utf-8")
+                text = f"message sent on exchange {ok.exchange}, routing-key {ok.routing_key}: {content}"
+                print(f"{ok}, {props}, {content}")
+                r = templates.TemplateResponse(
+                    request, "log.html", {"log_level": "info", "log_content": text}
+                )
+                body = bytes(r.body).decode("utf-8").strip()
+                yield f"event:log\ndata:{body}\n\n"
+            else:
+                await sleep(0.1)
 
 
 @app.get("/log", response_class=StreamingResponse)

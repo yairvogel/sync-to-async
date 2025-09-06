@@ -57,6 +57,8 @@ services:
       - "8000:8000"
     depends_on:
       - service
+    environment:
+      - Rmq=amqp://user:pass@rabbitmq:5672
     networks:
       - app-network
 
