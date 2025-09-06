@@ -16,11 +16,16 @@
          type="text" 
          name="message"
          placeholder="Type your message..." 
-         class="input input-bordered border-gray-600 focus:border-accent bg-gray-100" 
+         class="input input-bordered border-gray-600 focus:border-accent bg-gray-100 text-gray-700" 
          id="messageInput"
          x-model="msg"
          />
-        <button class="btn" x-bind:class="msg.length > 0 ? 'btn-accent' : 'btn-neutral'" id="sendButton" type="submit">
+        <div x-data="{value: 0}" class="max-w-96 flex flex-row gap-5 rounded-lg p-5">
+        <label for="delay" class="w-64 text-gray-700">Delay Time:</label>
+            <input x-model="value" type="range" name="delay" min="0" max="10000" step="100" value="0" class="range" />
+            <span class="text-gray-700 w-64" x-text="value.trim() + ' ms'"></span>
+        </div>
+        <button  class="btn" x-bind:class="msg.length > 0 ? 'btn-accent' : 'btn-neutral'" id="sendButton" type="submit">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
@@ -43,8 +48,6 @@
                 hx-target="this"
                 hx-swap="beforeend"
                 class="space-y-1">
-                <div class="text-success">[INFO] Server started</div>
-                <div class="text-info">[DEBUG] Waiting for connections...</div>
             </div>
         </div>
     </div>

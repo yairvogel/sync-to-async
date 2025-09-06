@@ -5,10 +5,15 @@ namespace sync_to_async;
 
 public class SyncRabbitMq(IConnection connection, SyncToAsync<string, string> syncToAsync, ILogger<SyncRabbitMq> logger) : BackgroundService
 {
-  public async Task<string> Publish(string request, CancellationToken cancellationToken)
+  public async Task<string> Publish(string request, int? delay, CancellationToken cancellationToken)
   {
     using var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
-    await channel.BasicPublishAsync("ping", string.Empty, true, new BasicProperties() { Headers = new Dictionary<string, object?>() {["X-Message-Id"] = request}}, Encoding.UTF8.GetBytes(request), cancellationToken);
+    var headers = new Dictionary<string, object?>() {["X-Message-Id"] = request};
+    if (delay is not null)
+    {
+      headers.Add("X-Delay", delay);
+    }
+    await channel.BasicPublishAsync("ping", string.Empty, true, new BasicProperties() { Headers = headers }, Encoding.UTF8.GetBytes(request), cancellationToken);
     return await syncToAsync.RequestAsync(request, cancellationToken);
   }
 

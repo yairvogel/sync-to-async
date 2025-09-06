@@ -20,6 +20,12 @@ while (true)
   if (get is not null) {
     string body = Encoding.UTF8.GetString(get.Body.Span);
     Console.WriteLine($"got message: {body}");
+    int? delay = (int?)get.BasicProperties.Headers?["X-Delay"];
+    if (delay is not null)
+    {
+      await Task.Delay(delay.Value);
+    }
+
     await channel.BasicPublishAsync("pong", string.Empty, true, new BasicProperties(get.BasicProperties), Encoding.UTF8.GetBytes(body.Replace("ping", "pong")));
   }
 

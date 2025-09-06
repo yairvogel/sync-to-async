@@ -31,11 +31,12 @@ builder.Services.AddHostedService(sp =>
 
 var app = builder.Build();
 
-app.MapGet("/{req}", async ([FromServices] SyncRabbitMq rmq, [FromRoute] string req, CancellationToken cancellationToken) =>
+app.MapGet("/{req}", async ([FromServices] SyncRabbitMq rmq, [FromRoute] string req, [FromQuery] int? delay, [FromServices] ILogger<Program> logger, CancellationToken cancellationToken) =>
 {
     try
     {
-        return Results.Text(await rmq.Publish(req, cancellationToken), "text/plain", Encoding.UTF8);
+        logger.LogInformation("delay: {Delay}", delay);
+        return Results.Text(await rmq.Publish(req, delay, cancellationToken), "text/plain", Encoding.UTF8);
     }
     catch (TaskCanceledException)
     {
