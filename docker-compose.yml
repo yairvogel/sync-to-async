@@ -41,8 +41,22 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      service:
+        condition: service_started
     environment:
       - RmqConnectionString=amqp://user:pass@rabbitmq:5672
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - service
     networks:
       - app-network
 

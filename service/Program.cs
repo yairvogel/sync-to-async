@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using RabbitMQ.Client;
 using sync_to_async;
@@ -23,9 +24,9 @@ builder.Services.AddHostedService(sp =>
     {
         var connection = sp.GetRequiredService<IConnection>();
         using var channel = connection.CreateChannelAsync().Result;
-        channel.QueueDeclareAsync("ping_queue", durable: true, exclusive: false, autoDelete: false).Wait();
-        channel.QueueDeclareAsync("pong_queue", durable: true, exclusive: false, autoDelete: false).Wait();
-        return new SyncRabbitMq(connection, sp.GetRequiredService<SyncToAsync<string, string>>());
+        channel.ExchangeDeclareAsync("ping", type: ExchangeType.Fanout, durable: true).Wait();
+        channel.ExchangeDeclareAsync("pong", type: ExchangeType.Fanout, durable: true).Wait();
+        return new SyncRabbitMq(connection, sp.GetRequiredService<SyncToAsync<string, string>>(), sp.GetRequiredService<ILogger<SyncRabbitMq>>());
     });
 
 var app = builder.Build();
@@ -34,7 +35,7 @@ app.MapGet("/{req}", async ([FromServices] SyncRabbitMq rmq, [FromRoute] string 
 {
     try
     {
-        return Results.Ok(await rmq.Publish(req, cancellationToken));
+        return Results.Text(await rmq.Publish(req, cancellationToken), "text/plain", Encoding.UTF8);
     }
     catch (TaskCanceledException)
     {

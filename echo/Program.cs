@@ -11,14 +11,16 @@ var factory = new ConnectionFactory
 
 var connection = await factory.CreateConnectionAsync();
 using var channel = await connection.CreateChannelAsync();
+var queue = await channel.QueueDeclareAsync();
+await channel.QueueBindAsync(queue.QueueName, "ping", string.Empty);
 
 while (true)
 {
-  var get = await channel.BasicGetAsync("ping_queue", true, default);
+  var get = await channel.BasicGetAsync(queue.QueueName, true, default);
   if (get is not null) {
     string body = Encoding.UTF8.GetString(get.Body.Span);
     Console.WriteLine($"got message: {body}");
-    await channel.BasicPublishAsync("", "pong_queue", true, new BasicProperties(get.BasicProperties), Encoding.UTF8.GetBytes(body.Replace("ping", "pong")));
+    await channel.BasicPublishAsync("pong", string.Empty, true, new BasicProperties(get.BasicProperties), Encoding.UTF8.GetBytes(body.Replace("ping", "pong")));
   }
 
   await Task.Delay(100);
