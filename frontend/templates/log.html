@@ -1,0 +1,13 @@
+
+{% if log_level == 'info' %}
+<div class="text-success">[INFO] {{ log_content }}</div>
+{% endif %}
+{% if log_level == 'debug' %}
+<div class="text-info">[DEBUG] {{ log_content }}</div>
+{% endif %}
+{% if log_level == 'warn' %}
+<div class="text-warning">[WARN] {{ log_content }}</div>
+{% endif %}
+{% if log_level == 'err' %}
+<div class="text-error">[ERR] {{ log_content }}</div>
+{% endif %}

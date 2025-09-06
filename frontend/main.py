@@ -24,12 +24,18 @@ async def ping(request: Request, message: str):
         )
 
 
-async def log_generator():
+async def log_generator(request: Request):
     while True:
-        yield "event: ping\ndata: ping\n\n"
+        print("ping")
+        r = templates.TemplateResponse(
+            request, "log.html", {"log_level": "info", "log_content": "ping"}
+        )
+        text = bytes(r.body).decode("utf-8").strip()
+        yield f"event:log\ndata:{text}\n\n"
         await sleep(1)
 
 
 @app.get("/log", response_class=StreamingResponse)
-async def log():
-    return StreamingResponse(log_generator(), media_type="text/event-stream")
+def log(request: Request):
+    print("ping")
+    return StreamingResponse(log_generator(request), media_type="text/event-stream")
