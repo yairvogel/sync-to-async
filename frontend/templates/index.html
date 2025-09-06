@@ -1,0 +1,145 @@
+
+{% extends "base.html" %}
+
+{% block title %}Sync to Async{% endblock %}
+
+{% block content %}
+<div class="flex h-screen">
+    <!-- Left Side - Chat Interface -->
+    <form
+        hx-get="message"
+        hx-target="#message"
+        hx-swap="outerHTML"
+        x-data="{msg: ''}"
+        class="flex-1 flex flex-col gap-5 px-10 border-r border-base-300 justify-center h-full">
+        <input 
+         type="text" 
+         name="message"
+         placeholder="Type your message..." 
+         class="input input-bordered border-gray-600 focus:border-accent bg-gray-100" 
+         id="messageInput"
+         x-model="msg"
+         />
+        <button class="btn" x-bind:class="msg.length > 0 ? 'btn-accent' : 'btn-neutral'" id="sendButton" type="submit">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            Send
+        </button>
+        <div id="message"></div>
+    </form>
+
+    <!-- Right Side - Log Stream -->
+    <div class="flex-1 flex flex-col p-4">
+        <div class="flex items-center gap-2 mb-4">
+            <h2 class="text-lg text-gray-700 font-semibold">Log Stream</h2>
+        </div>
+
+        <div class="flex-1 bg-base-200 rounded-lg p-4 overflow-y-auto font-mono text-sm">
+            <div id="logStream" class="space-y-1">
+                <div class="text-success">[INFO] Server started</div>
+                <div class="text-info">[DEBUG] Waiting for connections...</div>
+            </div>
+        </div>
+
+        <div class="flex gap-2 mt-4">
+            <button class="btn btn-sm btn-outline" id="clearLogs">Clear</button>
+            <button class="btn btn-sm btn-outline" id="pauseLogs">Pause</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Basic functionality
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const messagesContainer = document.getElementById('messages');
+    const logStream = document.getElementById('logStream');
+    const clearLogsButton = document.getElementById('clearLogs');
+    const pauseLogsButton = document.getElementById('pauseLogs');
+
+    let logsPaused = false;
+
+    // Send message functionality
+    function sendMessage() {
+        const message = messageInput.value.trim();
+        if (!message) return;
+
+        // Add user message
+        const userMessage = document.createElement('div');
+        userMessage.className = 'chat chat-end mb-4';
+        userMessage.innerHTML = `<div class="chat-bubble chat-bubble-secondary">${message}</div>`;
+        messagesContainer.appendChild(userMessage);
+
+        // Clear input
+        messageInput.value = '';
+
+        // Simulate response (replace with actual API call)
+        setTimeout(() => {
+            const botMessage = document.createElement('div');
+            botMessage.className = 'chat chat-start mb-4';
+            botMessage.innerHTML = `<div class="chat-bubble chat-bubble-primary">Processing: "${message}"</div>`;
+            messagesContainer.appendChild(botMessage);
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 1000);
+
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Event listeners
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    // Log stream functionality
+    clearLogsButton.addEventListener('click', () => {
+        logStream.innerHTML = '';
+    });
+
+    pauseLogsButton.addEventListener('click', () => {
+        logsPaused = !logsPaused;
+        pauseLogsButton.textContent = logsPaused ? 'Resume' : 'Pause';
+        pauseLogsButton.className = logsPaused ? 'btn btn-sm btn-warning' : 'btn btn-sm btn-outline';
+    });
+
+    // Simulate log entries
+    function addLogEntry(message, type = 'info') {
+        if (logsPaused) return;
+        
+        const logEntry = document.createElement('div');
+        const timestamp = new Date().toLocaleTimeString();
+        const typeClass = {
+            'info': 'text-info',
+            'success': 'text-success',
+            'warning': 'text-warning',
+            'error': 'text-error'
+        }[type] || 'text-info';
+        
+        logEntry.className = typeClass;
+        logEntry.textContent = `[${timestamp}] ${message}`;
+        
+        logStream.appendChild(logEntry);
+        logStream.scrollTop = logStream.scrollHeight;
+    }
+
+    // Simulate periodic log entries
+    setInterval(() => {
+        const messages = [
+            { msg: 'Processing request...', type: 'info' },
+            { msg: 'Task completed successfully', type: 'success' },
+            { msg: 'Memory usage: 45%', type: 'info' },
+            { msg: 'Warning: High CPU usage detected', type: 'warning' }
+        ];
+        
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        addLogEntry(randomMessage.msg, randomMessage.type);
+    }, 3000);
+</script>
+{% endblock %}
+
