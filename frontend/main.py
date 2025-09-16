@@ -3,6 +3,7 @@ from typing import Literal
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 import httpx
 from urllib.parse import quote
 import pika
@@ -18,6 +19,7 @@ if RABBITMQ_CONN is not None:
 
 app = FastAPI()
 templates = Jinja2Templates("templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 @app.get("/", response_class=HTMLResponse)
