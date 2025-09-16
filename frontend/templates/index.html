@@ -20,7 +20,7 @@
          id="messageInput"
          x-model="msg"
          />
-        <div x-data="{value: 0}" class="max-w-96 flex flex-row gap-5 rounded-lg p-5">
+        <div x-data="{value: '0'}" class="max-w-96 flex flex-row gap-5 rounded-lg p-5">
         <label for="delay" class="w-64 text-gray-700">Delay Time:</label>
             <input x-model="value" type="range" name="delay" min="0" max="10000" step="100" value="0" class="range" />
             <span class="text-gray-700 w-64" x-text="value.trim() + ' ms'"></span>
