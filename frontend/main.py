@@ -74,5 +74,4 @@ async def log_generator(request: Request):
 
 @app.get("/log", response_class=StreamingResponse)
 def log(request: Request):
-    print("ping")
     return StreamingResponse(log_generator(request), media_type="text/event-stream")

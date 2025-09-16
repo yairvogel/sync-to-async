@@ -4,9 +4,9 @@
 {% block title %}Sync to Async{% endblock %}
 
 {% block content %}
-<div class="flex h-screen">
-    <!-- Left Side - Chat Interface -->
+<div class="flex h-screen flex-col lg:flex-row">
     <form
+        autocomplete="off"
         hx-get="message"
         hx-target="#message"
         hx-swap="outerHTML"
@@ -16,12 +16,12 @@
          type="text" 
          name="message"
          placeholder="Type your message..." 
-         class="input input-bordered border-gray-600 focus:border-accent bg-gray-100 text-gray-700" 
+         class="input input-bordered focus:border-accent" 
          id="messageInput"
          x-model="msg"
          />
         <div x-data="{value: '0'}" class="max-w-96 flex flex-row gap-5 rounded-lg p-5">
-        <label for="delay" class="w-64 text-gray-700">Delay Time:</label>
+        <label for="delay" class="w-full text-gray-700">Delay Time:</label>
             <input x-model="value" type="range" name="delay" min="0" max="10000" step="100" value="0" class="range" />
             <span class="text-gray-700 w-64" x-text="value.trim() + ' ms'"></span>
         </div>
@@ -34,7 +34,6 @@
         <div id="message"></div>
     </form>
 
-    <!-- Right Side - Log Stream -->
     <div class="flex-1 flex flex-col p-4">
         <div class="flex items-center gap-2 mb-4">
             <h2 class="text-lg text-gray-700 font-semibold">Log Stream</h2>
