@@ -13,9 +13,15 @@ from pika.adapters.blocking_connection import BlockingChannel
 from pydantic import BaseModel
 
 RABBITMQ_CONN = os.environ.get("Rmq", None)
-connection: pika.BlockingConnection | None = None
-if RABBITMQ_CONN is not None:
-    connection = pika.BlockingConnection(pika.URLParameters(RABBITMQ_CONN))
+
+
+def create_connection(connstr: str) -> pika.BlockingConnection:
+    return pika.BlockingConnection(pika.URLParameters(connstr))
+
+
+connection: pika.BlockingConnection | None = (
+    create_connection(RABBITMQ_CONN) if RABBITMQ_CONN is not None else None
+)
 
 app = FastAPI()
 templates = Jinja2Templates("templates")
@@ -47,8 +53,14 @@ class LogMessage(BaseModel):
 
 
 async def log_generator(request: Request):
+    global connection
     if connection is None:
         return
+
+    if connection.is_closed:
+        assert RABBITMQ_CONN is not None
+        connection = create_connection(RABBITMQ_CONN)
+
     with connection.channel() as channel:
         channel: BlockingChannel
         result = channel.queue_declare("", exclusive=True)
